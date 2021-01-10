@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from config import token
-
+from PollManager import PollManager
 my_token = token
 emojiLetters = [
             "\N{REGIONAL INDICATOR SYMBOL LETTER A}",
@@ -36,13 +36,13 @@ client = commands.Bot(command_prefix = '.')
 @client.event
 async def on_ready():
 	print("Bot is ready.")
-	# Poll Manager?
+
 
 @client.command()
 async def poll(ctx, question, *args):
-	def check(reaction, user):
-        return user == ctx.author
-
+	voters = []
+	activePoll = True
+	
 	# Create poll
 	options = []
 	description = ""
@@ -56,23 +56,29 @@ async def poll(ctx, question, *args):
 		)
 	message = await ctx.send(embed = my_poll)
 	print(ctx.author)
+	creator = ctx.author
+	await creator.send(embed = my_poll)
 
-	await message.clear_reactions()
 	for i, option in enumerate(options):
 		await message.add_reaction(emojiLetters[i])
 	# TODO: Create poll object using PollManager
 
-
 	# Get votes
-	# while True:
-	#    try:
-	#        reaction, user = await client.wait_for('reaction_add', timeout = 30.0, check = check)
-	#        # Call Add Vote Method Here
-	#        await message.remove_reaction(reaction, user)
-	#    except:
-	#        break
+	reaction = None
+	# Ensure reaction is to the poll message and the reactor is not the bot
+	def check(reaction, user):
+		return reaction.message.id == message.id and user.id != 797601108268155001 
 
-async def end(ctx, id):
-	print("Ending poll #" + str(id))
+	while activePoll:
+		reaction, user = await client.wait_for('reaction_add', check = check)
+		await message.remove_reaction(reaction, user)
+		# Check if the user has already voted
+		if user not in voters:
+			voters.append(user)
+			user_name = user.display_name
+			await creator.send(user_name + " voted for " + str(reaction))
+
+	print("done")
+
 
 client.run(my_token)
