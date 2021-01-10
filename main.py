@@ -8,11 +8,15 @@ async def on_ready():
 	print("Bot is ready.")
 
 @client.command()
-async def poll(ctx, arg):
+async def poll(ctx, question, *args):
 	# Create poll
+	description = ""
+	for arg in args:
+		description += arg + "\n"
 	my_poll = discord.Embed(
-		title = "QUESTION HERE",
-		description = "OPTIONS HERE"
+		title = question,
+		description = description
+
 		)
 
 	message = await ctx.send(embed = my_poll)
@@ -31,4 +35,4 @@ async def poll(ctx, arg):
     #except:
     #    break
 
-client.run('')
+client.run('Nzk3NjAxMTA4MjY4MTU1MDAx.X_o16g.R6c2FInOFSYoR-gClmb69wKjW4Q')
