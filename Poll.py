@@ -1,9 +1,10 @@
 class Poll:
-    def __init__(self, creator, question, options):
+    def __init__(self, id, creator, question, options):
         self._id = id
         self._creator = creator
         self._question = question
         self._votes = {}
+        self._active = True
         for option in options:
             self._votes[option] = []
 
@@ -20,5 +21,16 @@ class Poll:
         return self._votes
 
     def add_vote(self, option, voter):
-        self._votes[option].append(voter)
+        if option in self._votes.keys(): 
+            self._votes[option].append(voter)
+            return True
+        else:
+            return False
+
+    def deactivate(self):
+        self._active = False
+
+    def isActive(self):
+        return self._active
+
 
