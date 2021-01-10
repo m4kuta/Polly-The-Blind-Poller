@@ -4,6 +4,8 @@ class Poll:
         self._creator = creator
         self._question = question
         self._votes = {}
+        for option in options:
+            self._votes[option] = []
 
     def get_id(self):
         return self._id
@@ -16,4 +18,7 @@ class Poll:
 
     def get_votes(self):
         return self._votes
+
+    def add_vote(self, option, voter):
+        self._votes[option].append(voter)
 
