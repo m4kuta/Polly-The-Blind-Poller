@@ -1,5 +1,8 @@
 import discord
 from discord.ext import commands
+from config import token
+
+my_token = token
 
 client = commands.Bot(command_prefix = '.')
 
@@ -16,9 +19,7 @@ async def poll(ctx, question, *args):
 	my_poll = discord.Embed(
 		title = question,
 		description = description
-
 		)
-
 	message = await ctx.send(embed = my_poll)
 	
 	# Get votes
@@ -35,4 +36,4 @@ async def poll(ctx, question, *args):
     #except:
     #    break
 
-client.run('Nzk3NjAxMTA4MjY4MTU1MDAx.X_o16g.R6c2FInOFSYoR-gClmb69wKjW4Q')
+client.run(my_token)
