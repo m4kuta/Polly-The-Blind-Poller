@@ -44,95 +44,84 @@ async def on_ready():
     print("Bot is active")
 
 
+# Helper method
+def embed_constructor(title, description, author, footer):
+    embed = discord.Embed(title=title, description=description)
+    embed.set_author(name=author, icon_url=author.avatar_url)
+    embed.set_footer(text=footer)
+    return embed
+
+
 @client.command()
 async def poll(ctx, duration, question, *answers):
-    emoji_answer_map = {}
-    total_votes = 0
+    # Poll attributes
+    emoji_answer = {}
     voters = []
-    vote_counts = {}
+    votes = {}
+    total_votes = 0
     end_datetime = datetime.datetime.now() + datetime.timedelta(minutes=int(duration))
+    description = "`Please vote before "
+    options = ""
 
-    # Create poll message
-    description = "This poll will be open until " + end_datetime.strftime("%B %d, %Y, %H:%M") + "\n\n"
-
+    # Construct poll answers
     for i, answer in enumerate(answers):
-        description += emojiLetters[i] + "     " + answer + "\n"
-        emoji_answer_map[emojiLetters[i]] = answer
+        options += emojiLetters[i] + "     " + answer + "\n"
+        emoji_answer[emojiLetters[i]] = answer
 
-    print(emoji_answer_map)
+    # Construct poll description
+    description += end_datetime.strftime("%B %d, %Y, %H:%M") + "`\n\n" + options
 
-    # Initialize vote_counts dictionary
+    # Construct votes dictionary
     for answer in answers:
-        vote_counts[answer] = 0
-    print(vote_counts)
-    my_poll = discord.Embed(
-        title=question,
-        description=description + "\n Total votes: " + str(total_votes)
-    )
-    creator = ctx.author
-    message = await ctx.send(embed=my_poll)
-    print("Poll opened")
-    start_time = datetime.datetime.now()
+        votes[answer] = 0
+
+    # Send poll message
+    message = await ctx.send(embed=
+                             embed_constructor(question, description, ctx.author, "Total votes: " + str(total_votes)))
+
+    # Display poll in console
+    print("\n======\n" + "\n" + question + "\n" + description + "\n" + str(votes))
 
     for i, answer in enumerate(answers):
         await message.add_reaction(emojiLetters[i])
-    # TODO: Create poll object using PollManager
-
-    # Get votes
-    reaction = None
 
     # Ensure reaction is to the poll message and the reactor is not the bot
     def check(reaction, user):
         return reaction.message.id == message.id and user.id != 797601108268155001
 
-    while True:  # Exit after a certain time
+    # Close the poll after a certain amount of time has elapsed
+    start_time = datetime.datetime.now()
+    while True:
         try:
-            reaction, user = await client.wait_for('reaction_add', timeout=5.0, check=check)
+            reaction, user = await client.wait_for('reaction_add', timeout=float(duration)+1.0, check=check)
             await message.remove_reaction(reaction, user)
 
             # Check if the user has already voted
             if user not in voters:
                 voters.append(user)
-                vote_counts[emoji_answer_map[reaction.emoji]] += 1
-                print(vote_counts)
-
+                votes[emoji_answer[reaction.emoji]] += 1
                 total_votes += 1
-                print("Total votes: " + str(total_votes))
+                print(str(votes) + "\nTotal votes: " + str(total_votes))
 
-                updated_poll = discord.Embed(
-                    title=question,
-                    description=description + "\n Total votes: " + str(total_votes)
-                )
-                await message.edit(embed=updated_poll)
+                await message.edit(embed=embed_constructor(question, description, ctx.author, "Total votes: " + str(total_votes)))
 
         except asyncio.TimeoutError:
             if datetime.datetime.now() > start_time + datetime.timedelta(minutes=int(duration)):
                 break
 
-    # Send messages of results
-    print("Poll closed")
+    # Modify original poll message
     await message.clear_reactions()
-    description = "This poll is closed\n\n"
+    description = "`This poll is closed`\n\n" + options
+    await message.edit(embed=embed_constructor(question, description, ctx.author, "Total votes: " + str(total_votes)))
+    print("Poll closed")
 
-    for i, answer in enumerate(answers):
-        description += emojiLetters[i] + "     " + answer + "\n"
-        emoji_answer_map[emojiLetters[i]] = answer
-
-    updated_poll = discord.Embed(
-        title=question,
-        description=description + "\n Total votes: " + str(total_votes)
-    )
-    await message.edit(embed=updated_poll)
-
+    # Send messages of poll results
     results = ""
-    for answer in vote_counts:
-        results += answer + ": " + str(vote_counts[answer]) + "\n"
-    results += "\n Total votes: " + str(total_votes)
-    results_message = discord.Embed(
-        title=question,
-        description=results
-    )
-    await ctx.send(embed=results_message)
+    for i, answer in enumerate(votes):
+        results += emojiLetters[i] + "`" + str(votes[answer]) + "`, "
 
+    description = "`Results`\n" + options + "\n" +  results
+
+    await ctx.send(embed=embed_constructor(question, description, ctx.author, "Total votes: " + str(total_votes)))
 
 client.run(my_token)
