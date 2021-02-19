@@ -41,7 +41,7 @@ client = commands.Bot(command_prefix='/')
 
 @client.event
 async def on_ready():
-    print("Bot is active")
+    print("Bot is ready")
 
 
 # Helper method
@@ -53,14 +53,19 @@ def embed_constructor(title, description, author, footer):
 
 
 @client.command()
-async def poll(ctx, duration, question, *answers):
+async def poll(ctx, duration="0:0:0", multiple="single", question="Question", *answers):
     # Poll attributes
+    duration = list(map(int, duration.split(":")))
+    multi = False
+    if multiple == "multiple":
+        multi = True
     emoji_answer = {}
     voters = []
     votes = {}
     total_votes = 0
-    end_datetime = datetime.datetime.now() + datetime.timedelta(minutes=int(duration))
-    description = "`Please vote before "
+    end_datetime = datetime.datetime.now() + datetime.timedelta(hours=duration[0], minutes=duration[1],
+                                                                seconds=duration[2])
+    description = "*Voting open until "
     options = ""
 
     # Construct poll answers
@@ -69,18 +74,18 @@ async def poll(ctx, duration, question, *answers):
         emoji_answer[emojiLetters[i]] = answer
 
     # Construct poll description
-    description += end_datetime.strftime("%B %d, %Y, %H:%M") + "`\n\n" + options
+    description += "`" + end_datetime.strftime("%b %d, %Y, %I:%M %p") + "`*\n\n" + options
 
     # Construct votes dictionary
     for answer in answers:
-        votes[answer] = 0
+        votes[answer] = []
 
     # Send poll message
     message = await ctx.send(embed=
-                             embed_constructor(question, description, ctx.author, "Total votes: " + str(total_votes)))
+                             embed_constructor(question, description, ctx.author, "# of voters: " + str(len(voters)) + "\n# of votes: " + str(total_votes)))
 
     # Display poll in console
-    print("\n======\n" + "\n" + question + "\n" + description + "\n" + str(votes))
+    print(question + "\n" + description + "\n" + str(votes))
 
     for i, answer in enumerate(answers):
         await message.add_reaction(emojiLetters[i])
@@ -93,35 +98,43 @@ async def poll(ctx, duration, question, *answers):
     start_time = datetime.datetime.now()
     while True:
         try:
-            reaction, user = await client.wait_for('reaction_add', timeout=float(duration)+1.0, check=check)
+            reaction, user = await client.wait_for('reaction_add', timeout=0.1, check=check)
             await message.remove_reaction(reaction, user)
 
             # Check if the user has already voted
+            if multi:
+                if user not in voters:
+                    voters.append(user)
+                if user not in votes[emoji_answer[reaction.emoji]]:
+                    votes[emoji_answer[reaction.emoji]].append(user)
+                    total_votes += 1
+                    await message.edit(
+                        embed=embed_constructor(question, description, ctx.author, "# of voters: " + str(len(voters)) + "\n# of votes: " + str(total_votes)))
+
             if user not in voters:
                 voters.append(user)
-                votes[emoji_answer[reaction.emoji]] += 1
+                votes[emoji_answer[reaction.emoji]].append(user)
                 total_votes += 1
-                print(str(votes) + "\nTotal votes: " + str(total_votes))
+                await message.edit(
+                    embed=embed_constructor(question, description, ctx.author, "# of voters: " + str(len(voters)) + "\n# of votes: " + str(total_votes)))
 
-                await message.edit(embed=embed_constructor(question, description, ctx.author, "Total votes: " + str(total_votes)))
+            print(str(votes) + " Total votes: " + str(total_votes))
 
         except asyncio.TimeoutError:
-            if datetime.datetime.now() > start_time + datetime.timedelta(minutes=int(duration)):
+            if datetime.datetime.now() > start_time + datetime.timedelta(hours=duration[0], minutes=duration[1], seconds=duration[2]):
                 break
 
-    # Modify original poll message
-    await message.clear_reactions()
-    description = "`This poll is closed`\n\n" + options
-    await message.edit(embed=embed_constructor(question, description, ctx.author, "Total votes: " + str(total_votes)))
+    await message.delete()
     print("Poll closed")
 
-    # Send messages of poll results
+    # Send message of poll results
     results = ""
     for i, answer in enumerate(votes):
-        results += emojiLetters[i] + "`" + str(votes[answer]) + "`, "
+        results += emojiLetters[i] + "`" + str(len(votes[answer])) + "` | "
 
-    description = "`Results`\n" + options + "\n" +  results
+    description = "*Voting results*\n\n" + options + "\n" + results
 
-    await ctx.send(embed=embed_constructor(question, description, ctx.author, "Total votes: " + str(total_votes)))
+    await ctx.send(embed=embed_constructor(question, description[:-2], ctx.author, "# of voters: " + str(len(voters)) + "\n# of votes: " + str(total_votes)))
+
 
 client.run(my_token)
