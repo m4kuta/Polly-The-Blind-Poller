@@ -1,12 +1,8 @@
 import asyncio
 import datetime
-
 import discord
 from discord.ext import commands
-
 from config import token
-
-my_token = token
 
 emojiLetters = [
     "\N{REGIONAL INDICATOR SYMBOL LETTER A}",
@@ -63,8 +59,7 @@ async def poll(ctx, duration="0:0:0", multiple="single", question="Question", *a
     voters = []
     votes = {}
     total_votes = 0
-    end_datetime = datetime.datetime.now() + datetime.timedelta(hours=duration[0], minutes=duration[1],
-                                                                seconds=duration[2])
+    end_datetime = datetime.datetime.now() + datetime.timedelta(hours=duration[0], minutes=duration[1], seconds=duration[2])
     description = "*Voting open until "
     options = ""
 
@@ -137,4 +132,4 @@ async def poll(ctx, duration="0:0:0", multiple="single", question="Question", *a
     await ctx.send(embed=embed_constructor(question, description[:-2], ctx.author, "# of voters: " + str(len(voters)) + "\n# of votes: " + str(total_votes)))
 
 
-client.run(my_token)
+client.run(token)
